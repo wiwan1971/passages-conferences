@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Passaggi Adunanze</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* BASE & LAYOUT */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .space-y-4 > * + * { margin-top: 16px; }
+        .space-x-4 > * + * { margin-left: 16px; }
+        .min-h-screen { min-height: 100vh; }
+        .grid { display: grid; }
+        .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .grid-cols-7 { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+        .gap-2 { gap: 8px; }
+        .gap-4 { gap: 16px; }
+        
+        /* COLORS & BACKGROUNDS */
+        .bg-white { background-color: white; }
+        .bg-gray-50 { background-color: #f9fafb; }
+        .bg-blue-600 { background-color: #2563eb; }
+        .bg-green-600 { background-color: #059669; }
+        .bg-red-600 { background-color: #dc2626; }
+        .bg-gray-600 { background-color: #4b5563; }
+        .bg-yellow-500 { background-color: #eab308; }
+        .bg-indigo-600 { background-color: #4f46e5; }
+        .bg-purple-600 { background-color: #9333ea; }
+        .bg-orange-600 { background-color: #ea580c; }
+        .bg-sky-600 { background-color: #0284c7; }
+        .bg-emerald-600 { background-color: #059669; }
+        .bg-rose-600 { background-color: #e11d48; }
+        .bg-orange-50 { background-color: #fffbeb; }
+        .bg-blue-200 { background-color: #dbeafe; }
+        .text-white { color: white; }
+        .text-gray-800 { color: #1f2937; }
+        .text-gray-600 { color: #4b5563; }
+        .text-gray-500 { color: #6b7280; }
+        .text-blue-600 { color: #2563eb; }
+        .text-blue-700 { color: #1d4ed8; }
+        .text-green-800 { color: #166534; }
+        .text-yellow-800 { color: #92400e; }
+        .text-orange-600 { color: #ea580c; }
+        .text-orange-700 { color: #c2410c; }
+        
+        /* TYPOGRAPHY */
+        .font-bold { font-weight: 700; }
+        .font-semibold { font-weight: 600; }
+        .font-medium { font-weight: 500; }
+        .text-sm { font-size: 14px; }
+        .text-lg { font-size: 18px; }
+        .text-xl { font-size: 20px; }
+        .text-2xl { font-size: 24px; }
+        .text-3xl { font-size: 30px; }
+        .text-center { text-align: center; }
+        .text-left { text-align: left; }
+        .uppercase { text-transform: uppercase; }
+        
+        /* SPACING */
+        .p-4 { padding: 16px; }
+        .p-6 { padding: 24px; }
+        .py-2 { padding-top: 8px; padding-bottom: 8px; }
+        .py-3 { padding-top: 12px; padding-bottom: 12px; }
+        .px-4 { padding-left: 16px; padding-right: 16px; }
+        .px-6 { padding-left: 24px; padding-right: 24px; }
+        .m-4 { margin: 16px; }
+        .mb-4 { margin-bottom: 16px; }
+        .mb-6 { margin-bottom: 24px; }
+        .mb-8 { margin-bottom: 32px; }
+        .mt-4 { margin-top: 16px; }
+        .mt-6 { margin-top: 24px; }
+        .mt-8 { margin-top: 32px; }
+        
+        /* COMPONENTS & UTILITIES */
+        .rounded-lg { border-radius: 8px; }
+        .rounded-xl { border-radius: 12px; }
+        .rounded-full { border-radius: 9999px; }
+        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+        .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+        .border { border: 1px solid #d1d5db; }
+        .border-2 { border: 2px solid #d1d5db; }
+        .border-blue-200 { border-color: #dbeafe; }
+        .border-orange-200 { border-color: #fed7aa; }
+        .w-full { width: 100%; }
+        .max-w-sm { max-width: 384px; }
+        .max-w-lg { max-width: 512px; }
+        .max-w-xl { max-width: 576px; }
+        .max-w-2xl { max-width: 672px; }
+        .transition {
+            transition-property: color, background-color, border-color, fill, stroke, opacity, box-shadow, transform;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms;
+        }
+        .cursor-pointer { cursor: pointer; }
+        .overflow-hidden { overflow: hidden; }
+        .overflow-x-auto { overflow-x: auto; }
+        
+        button {
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        input, select, textarea {
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            width: 100%;
+            font-size: 16px;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table th,
+        .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .table th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+        
+        .table tr:hover {
+            background-color: #f9fafb;
+        }
+        
+        .day {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 48px;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        
+        .day:not(.empty-day):hover {
+            background-color: #e5e7eb;
+        }
+        
+        .selected-day {
+            background-color: #3b82f6 !important;
+            color: white !important;
+            font-weight: 600;
+        }
+        
+        .empty-day {
+            cursor: default;
+        }
+        
+        .day-button {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            background-color: #e5e7eb;
+            color: #374151;
+            margin: 2px;
+        }
+        
+        .day-button.selected {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        .badge {
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .badge-green {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-yellow {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        
+        .badge-red {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .form-section {
+            background: white;
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+        
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 16px 0;
+        }
+        
+        .alert-success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #059669;
+        }
+        
+        .alert-error {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #dc2626;
+        }
+        
+        .confirm-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 2000;
+        }
+        
+        .confirm-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .emergency-section {
+            background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .emergency-alert {
+            background-color: #fef3c7;
+            color: #92400e;
+            border: 1px solid #f59e0b;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        /* RESPONSIVE & PRINT */
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            .hidden-mobile { display: none; }
+            .flex-mobile-col { flex-direction: column; }
+            .text-3xl { font-size: 24px; }
+            .text-2xl { font-size: 20px; }
+            .grid-cols-7 { gap: 4px; }
+            .grid-cols-3 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+        }
+        
+        /* CSS per la stampa */
+        @media print {
+            body {
+                background: white !important;
+                font-size: 12px;
+                margin: 0;
+                padding: 0;
+            }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            #printSection {
+                position: static !important;
+                width: 100% !important;
+                height: auto !important;
+                background: white !important;
+                border: none !important;
+                box-shadow: none !important;
+                margin: 0 !important;
+                padding: 10px !important;
+            }
+            .print-header { page-break-after: avoid; }
+            .driver-section { page-break-inside: avoid; margin-bottom: 15px; }
+            .assignment-item { page-break-inside: avoid; }
+            .hide-when-printing { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div id="main-container" class="hide-when-printing"></div>
+    <div id="formSection" class="form-section hidden hide-when-printing">
+        <div id="formContent"></div>
+    </div>
+    <div id="alertContainer" class="hide-when-printing"></div>
+    <div id="printSection" class="print-only hidden"></div>
+
+    <script>
+        // =========================================================
+        // SECTION 1: Utility Functions & State Management
+        // =========================================================
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return hash.toString(36);
+        }
+
+        const state = {
+            view: 'login',
+            drivers: [],
+            passengers: [],
+            emergencyRequests: [],
+            currentEditDriver: null,
+            currentEditPassenger: null,
+            selectedDriverForView: null,
+            calendarCurrentDate: new Date(),
+            calendarSelectedDates: [],
+            adminPasswordHash: simpleHash('admin123'),
+            showForm: false,
+            formType: '',
+            showAssignmentsList: false,
+            editAssignment: null
+        };
+
+        const availableTowns = ["Montà", "Cellarengo", "Pralormo", "Villastellone", "Poirino", "Santena", "Altro"];
+        const availableDays = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"];
+        const monthNames = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
+        const dayNames = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
+
+        function saveToStorage() {
+            try {
+                const dataToSave = {
+                    drivers: state.drivers,
+                    passengers: state.passengers,
+                    emergencyRequests: state.emergencyRequests,
+                    selectedDates: state.calendarSelectedDates,
+                    adminPasswordHash: state.adminPasswordHash
+                };
+                localStorage.setItem('passaggiData', JSON.stringify(dataToSave));
+            } catch (e) {
+                console.error('Errore nel salvare i dati:', e);
+                showAlert('Errore nel salvataggio dei dati. Riprova.', 'error');
+            }
+        }
+
+        function loadFromStorage() {
+            try {
+                const data = localStorage.getItem('passaggiData');
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    state.drivers = parsed.drivers || [];
+                    state.passengers = parsed.passengers || [];
+                    state.emergencyRequests = parsed.emergencyRequests || [];
+                    state.calendarSelectedDates = parsed.selectedDates || [];
+                    
+                    if (parsed.adminPasswordHash) {
+                        state.adminPasswordHash = parsed.adminPasswordHash;
+                    } else if (parsed.adminPassword) {
+                        state.adminPasswordHash = simpleHash(parsed.adminPassword);
+                        saveToStorage();
+                    }
+                }
+            } catch (e) {
+                console.error('Errore nel caricare i dati:', e);
+                showAlert('Errore nel caricamento dei dati.', 'error');
+            }
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr + 'T00:00:00');
+            const day = date.getDate();
+            const month = monthNames[date.getMonth()];
+            const year = date.getFullYear();
+            const dayOfWeek = dayNames[date.getDay()];
+            return `${dayOfWeek} ${day} ${month} ${year}`;
+        }
+
+        function validatePhone(phone) {
+            return /^[\+]?[0-9\s\-\(\)]{8,}$/.test(phone);
+        }
+
+        function validateEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function showAlert(message, type = 'success') {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.parentNode.removeChild(alert);
+                }
+            }, 4000);
+        }
+
+        function showConfirmDialog(title, message, onConfirm) {
+            const existingDialog = document.getElementById('confirmDialog');
+            if (existingDialog) {
+                existingDialog.remove();
+            }
+            const dialog = document.createElement('div');
+            dialog.id = 'confirmDialog';
+            dialog.className = 'confirm-dialog';
+            dialog.innerHTML = `
+                <div class="confirm-content">
+                    <h3 style="margin: 0 0 15px 0; font-size: 20px; color: #333;">${title}</h3>
+                    <p style="margin: 0 0 25px 0; color: #666; line-height: 1.5;">${message}</p>
+                    <div style="display: flex; gap: 15px; justify-content: center;">
+                        <button onclick="closeConfirmDialog()" style="background: #6b7280; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Annulla</button>
+                        <button onclick="confirmAction()" style="background: #059669; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Conferma</button>
+                    </div>
+                </div>
+            `;
+            window.pendingConfirmAction = onConfirm;
+            document.body.appendChild(dialog);
+        }
+
+        function confirmAction() {
+            if (window.pendingConfirmAction) {
+                window.pendingConfirmAction();
+                window.pendingConfirmAction = null;
+            }
+            closeConfirmDialog();
+        }
+
+        function closeConfirmDialog() {
+            const dialog = document.getElementById('confirmDialog');
+            if (dialog) {
+                dialog.remove();
+            }
+            window.pendingConfirmAction = null;
+        }
+
+        // =========================================================
+        // SECTION 2: Form & View Management
+        // =========================================================
+
+        function showForm(type) {
+            state.showForm = true;
+            state.formType = type;
+            renderForm();
+        }
+
+        function hideForm() {
+            state.showForm = false;
+            state.formType = '';
+            state.currentEditDriver = null;
+            state.currentEditPassenger = null;
+            state.editAssignment = null;
+            document.getElementById('formSection').classList.add('hidden');
+        }
+
+        function renderForm() {
+            const formSection = document.getElementById('formSection');
+            const formContent = document.getElementById('formContent');
+            
+            if (!state.showForm) {
+                formSection.classList.add('hidden');
+                return;
+            }
+
+            let formHTML = '';
+
+            switch (state.formType) {
+                case 'driver':
+                    formHTML = `
+                        <h3 class="text-xl font-bold mb-4">${state.currentEditDriver ? 'Modifica Autista' : 'Aggiungi Autista'}</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Nome *</label>
+                                <input type="text" id="driverName" value="${state.currentEditDriver?.name || ''}" placeholder="Nome completo">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Telefono *</label>
+                                <input type="tel" id="driverPhone" value="${state.currentEditDriver?.phone || ''}" placeholder="Numero di telefono">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Email</label>
+                                <input type="email" id="driverEmail" value="${state.currentEditDriver?.email || ''}" placeholder="Email (opzionale)">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Paesi Disponibili *</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    ${availableTowns.map(town => `
+                                        <label class="flex items-center">
+                                            <input type="checkbox" name="driverTowns" value="${town}" ${state.currentEditDriver?.towns?.includes(town) ? 'checked' : ''}>
+                                            <span class="ml-2 text-sm">${town}</span>
+                                        </label>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Giorni Disponibili *</label>
+                                <div class="flex flex-wrap gap-2">
+                                    ${availableDays.map(day => {
+                                        const isSelected = state.currentEditDriver?.availableDays?.includes(day);
+                                        return `<button type="button" class="day-button ${isSelected ? 'selected' : ''}" onclick="toggleDay(this, '${day}')">${day}</button>`;
+                                    }).join('')}
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <button onclick="hideForm()" class="py-2 px-6 bg-gray-600 text-white rounded-lg">Annulla</button>
+                                <button onclick="saveDriver()" class="py-2 px-6 bg-green-600 text-white rounded-lg">Salva</button>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'passenger':
+                    formHTML = `
+                        <h3 class="text-xl font-bold mb-4">${state.currentEditPassenger ? 'Modifica Passeggero' : 'Aggiungi Passeggero'}</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Nome *</label>
+                                <input type="text" id="passengerName" value="${state.currentEditPassenger?.name || ''}" placeholder="Nome completo">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Telefono *</label>
+                                <input type="tel" id="passengerPhone" value="${state.currentEditPassenger?.phone || ''}" placeholder="Numero di telefono">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Email</label>
+                                <input type="email" id="passengerEmail" value="${state.currentEditPassenger?.email || ''}" placeholder="Email (opzionale)">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Indirizzo *</label>
+                                <input type="text" id="passengerAddress" value="${state.currentEditPassenger?.address || ''}" placeholder="Via/Indirizzo completo">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Paese *</label>
+                                <select id="passengerTown">
+                                    ${availableTowns.map(town => `<option value="${town}" ${state.currentEditPassenger?.town === town ? 'selected' : ''}>${town}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Giorni Disponibili</label>
+                                <div class="flex flex-wrap gap-2">
+                                    ${availableDays.map(day => {
+                                        const isSelected = state.currentEditPassenger?.availableDays?.includes(day);
+                                        return `<button type="button" class="day-button ${isSelected ? 'selected' : ''}" onclick="toggleDay(this, '${day}')">${day}</button>`;
+                                    }).join('')}
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <button onclick="hideForm()" class="py-2 px-6 bg-gray-600 text-white rounded-lg">Annulla</button>
+                                <button onclick="savePassenger()" class="py-2 px-6 bg-green-600 text-white rounded-lg">Salva</button>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'password':
+                    formHTML = `
+                        <h3 class="text-xl font-bold mb-4">Cambia Password Amministratore</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Nuova Password *</label>
+                                <input type="password" id="newPassword" placeholder="Inserisci la nuova password">
+                            </div>
+                            <div class="flex gap-4">
+                                <button onclick="hideForm()" class="py-2 px-6 bg-gray-600 text-white rounded-lg">Annulla</button>
+                                <button onclick="savePassword()" class="py-2 px-6 bg-green-600 text-white rounded-lg">Salva</button>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                case 'emergency':
+                    const driverOptions = state.drivers.filter(d => !d.paused).map(driver => 
+                        `<option value="${driver.id}">${driver.name}</option>`
+                    ).join('');
+                    
+                    formHTML = `
+                        <h3 class="text-xl font-bold mb-4 text-orange-600">🚨 Richiesta Sostituzione Emergenza</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Autista da Sostituire *</label>
+                                <select id="emergencyOriginalDriver">
+                                    <option value="">-- Seleziona autista --</option>
+                                    ${driverOptions}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Data dell'Emergenza *</label>
+                                <input type="date" id="emergencyDate" min="${new Date().toISOString().split('T')[0]}">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Motivo dell'Emergenza *</label>
+                                <select id="emergencyReason">
+                                    <option value="">-- Seleziona motivo --</option>
+                                    <option value="malattia">Malattia</option>
+                                    <option value="lavoro">Impegni di lavoro</option>
+                                    <option value="famiglia">Emergenza familiare</option>
+                                    <option value="viaggio">Viaggio/Vacanza</option>
+                                    <option value="altro">Altro</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Note aggiuntive</label>
+                                <textarea id="emergencyNotes" placeholder="Dettagli aggiuntivi..." rows="3"></textarea>
+                            </div>
+                            <div class="flex gap-4">
+                                <button onclick="hideForm()" class="py-2 px-6 bg-gray-600 text-white rounded-lg">Annulla</button>
+                                <button onclick="saveEmergencyRequest()" class="py-2 px-6 bg-orange-600 text-white rounded-lg">Invia Richiesta</button>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                case 'edit-assignment':
+                    if (!state.editAssignment) break;
+                    
+                    const editDriverOptions = state.drivers.filter(d => !d.paused).map(driver => 
+                        `<option value="${driver.id}" ${driver.id === state.editAssignment.driverId ? 'selected' : ''}>${driver.name}</option>`
+                    ).join('');
+                    
+                    formHTML = `
+                        <h3 class="text-xl font-bold mb-4">Modifica Assegnazione</h3>
+                        <div class="space-y-4">
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <p class="text-sm text-gray-600">
+                                    <strong>Passeggero:</strong> ${state.editAssignment.passengerName}<br>
+                                    <strong>Data originale:</strong> ${formatDate(state.editAssignment.originalDate)}
+                                </p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Nuovo Autista *</label>
+                                <select id="newDriverId">
+                                    ${editDriverOptions}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Nuova Data *</label>
+                                <input type="date" id="newDate" value="${state.editAssignment.date}" min="${new Date().toISOString().split('T')[0]}">
+                            </div>
+                            <div class="flex gap-4">
+                                <button onclick="hideForm()" class="py-2 px-6 bg-gray-600 text-white rounded-lg">Annulla</button>
+                                <button onclick="saveAssignmentEdit()" class="py-2 px-6 bg-green-600 text-white rounded-lg">Salva Modifica</button>
+                            </div>
+                        </div>
+                    `;
+                    break;
+            }
+
+            formContent.innerHTML = formHTML;
+            formSection.classList.remove('hidden');
+            formSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function toggleDay(button, day) {
+            button.classList.toggle('selected');
+        }
+
+        // Main render function
+        function render() {
+            switch (state.view) {
+                case 'login': renderLoginView(); break;
+                case 'admin': renderAdminView(); break;
+                case 'driver': renderDriverView(); break;
+                case 'calendar': renderCalendarView(); break;
+            }
+            if (state.showForm) { renderForm(); }
+        }
+
+        function changeView(newView) {
+            state.view = newView;
+            hideForm();
+            render();
+        }
+
+        // =========================================================
+        // SECTION 3: Business Logic (CRUD & Operations)
+        // =========================================================
+
+        function saveDriver() {
+            const name = document.getElementById('driverName').value.trim();
+            const phone = document.getElementById('driverPhone').value.trim();
+            const email = document.getElementById('driverEmail').value.trim();
+            const towns = Array.from(document.querySelectorAll('input[name="driverTowns"]:checked')).map(el => el.value);
+            const availableDays = Array.from(document.querySelectorAll('#formContent .day-button.selected')).map(el => el.textContent);
+
+            if (!name || !phone || towns.length === 0 || availableDays.length === 0) {
+                return showAlert('Errore: compila tutti i campi obbligatori (*).', 'error');
+            }
+            if (!validatePhone(phone)) {
+                return showAlert('Errore: formato del telefono non valido.', 'error');
+            }
+            if (email && !validateEmail(email)) {
+                return showAlert('Errore: formato dell\'email non valido.', 'error');
+            }
+            
+            if (state.currentEditDriver) {
+                const driver = state.drivers.find(d => d.id === state.currentEditDriver.id);
+                if (driver) {
+                    driver.name = name;
+                    driver.phone = phone;
+                    driver.email = email;
+                    driver.towns = towns;
+                    driver.availableDays = availableDays;
+                    showAlert('Autista modificato con successo!');
+                }
+            } else {
+                state.drivers.push({
+                    id: generateId(),
+                    name,
+                    phone,
+                    email,
+                    towns,
+                    availableDays,
+                    assignedPassengers: [],
+                    paused: false
+                });
+                showAlert('Autista aggiunto con successo!');
+            }
+            saveToStorage();
+            hideForm();
+            render();
+        }
+
+        function editDriver(id) {
+            state.currentEditDriver = state.drivers.find(d => d.id === id);
+            showForm('driver');
+        }
+
+        function deleteDriver(id) {
+            showConfirmDialog('Elimina Autista', 'Sei sicuro di voler eliminare questo autista? Questa azione è irreversibile.', () => {
+                state.drivers = state.drivers.filter(d => d.id !== id);
+                state.passengers.forEach(p => {
+                    if (p.assignedDriverId === id) {
+                        p.assignedDriverId = null;
+                    }
+                });
+                saveToStorage();
+                render();
+                showAlert('Autista eliminato con successo!');
+            });
+        }
+
+        function togglePauseDriver(id) {
+            const driver = state.drivers.find(d => d.id === id);
+            if (driver) {
+                driver.paused = !driver.paused;
+                saveToStorage();
+                render();
+                showAlert(driver.paused ? 'Autista messo in pausa.' : 'Autista attivato.');
+            }
+        }
+
+        function savePassenger() {
+            const name = document.getElementById('passengerName').value.trim();
+            const phone = document.getElementById('passengerPhone').value.trim();
+            const email = document.getElementById('passengerEmail').value.trim();
+            const address = document.getElementById('passengerAddress').value.trim();
+            const town = document.getElementById('passengerTown').value;
+            const availableDays = Array.from(document.querySelectorAll('#formContent .day-button.selected')).map(el => el.textContent);
+
+            if (!name || !phone || !address || !town) {
+                return showAlert('Errore: compila tutti i campi obbligatori (*).', 'error');
+            }
+            if (!validatePhone(phone)) {
+                return showAlert('Errore: formato del telefono non valido.', 'error');
+            }
+            if (email && !validateEmail(email)) {
+                return showAlert('Errore: formato dell\'email non valido.', 'error');
+            }
+
+            if (state.currentEditPassenger) {
+                const passenger = state.passengers.find(p => p.id === state.currentEditPassenger.id);
+                if (passenger) {
+                    passenger.name = name;
+                    passenger.phone = phone;
+                    passenger.email = email;
+                    passenger.address = address;
+                    passenger.town = town;
+                    passenger.availableDays = availableDays;
+                    showAlert('Passeggero modificato con successo!');
+                }
+            } else {
+                state.passengers.push({
+                    id: generateId(),
+                    name,
+                    phone,
+                    email,
+                    address,
+                    town,
+                    availableDays,
+                    paused: false
+                });
+                showAlert('Passeggero aggiunto con successo!');
+            }
+            saveToStorage();
+            hideForm();
+            render();
+        }
+
+        function editPassenger(id) {
+            state.currentEditPassenger = state.passengers.find(p => p.id === id);
+            showForm('passenger');
+        }
+
+        function deletePassenger(id) {
+            showConfirmDialog('Elimina Passeggero', 'Sei sicuro di voler eliminare questo passeggero? Questa azione è irreversibile.', () => {
+                state.passengers = state.passengers.filter(p => p.id !== id);
+                state.drivers.forEach(driver => {
+                    driver.assignedPassengers = driver.assignedPassengers.filter(p => p.id !== id);
+                });
+                saveToStorage();
+                render();
+                showAlert('Passeggero eliminato con successo!');
+            });
+        }
+
+        function togglePausePassenger(id) {
+            const passenger = state.passengers.find(p => p.id === id);
+            if (passenger) {
+                passenger.paused = !passenger.paused;
+                saveToStorage();
+                render();
+                showAlert(passenger.paused ? 'Passeggero messo in pausa.' : 'Passeggero attivato.');
+            }
+        }
+
+        function savePassword() {
+            const newPassword = document.getElementById('newPassword').value;
+            if (newPassword.length < 4) {
+                return showAlert('La password deve contenere almeno 4 caratteri.', 'error');
+            }
+            state.adminPasswordHash = simpleHash(newPassword);
+            saveToStorage();
+            hideForm();
+            showAlert('Password aggiornata con successo!');
+        }
+        
+        function saveEmergencyRequest() {
+            const originalDriverId = document.getElementById('emergencyOriginalDriver').value;
+            const emergencyDate = document.getElementById('emergencyDate').value;
+            const reason = document.getElementById('emergencyReason').value;
+            const notes = document.getElementById('emergencyNotes').value.trim();
+
+            if (!originalDriverId || !emergencyDate || !reason) {
+                return showAlert('Compila tutti i campi obbligatori per la richiesta di emergenza.', 'error');
+            }
+            
+            const driver = state.drivers.find(d => d.id === originalDriverId);
+            if (!driver) {
+                return showAlert('Autista selezionato non trovato.', 'error');
+            }
+
+            state.emergencyRequests.push({
+                id: generateId(),
+                originalDriverId,
+                originalDriverName: driver.name,
+                date: emergencyDate,
+                reason,
+                notes,
+                status: 'pending'
+            });
+
+            saveToStorage();
+            hideForm();
+            render();
+            showAlert('Richiesta di emergenza inviata con successo!', 'success');
+        }
+
+        function resolveEmergency(id) {
+            showConfirmDialog('Risolvi Emergenza', 'Hai gestito questa emergenza? Verrà rimossa dall\'elenco.', () => {
+                const requestIndex = state.emergencyRequests.findIndex(req => req.id === id);
+                if (requestIndex !== -1) {
+                    state.emergencyRequests.splice(requestIndex, 1);
+                    saveToStorage();
+                    showEmergencyRequests();
+                    showAlert('Emergenza risolta.');
+                }
+            });
+        }
+
+        function deleteEmergency(id) {
+            showConfirmDialog('Elimina Richiesta', 'Sei sicuro di voler eliminare questa richiesta di emergenza?', () => {
+                const requestIndex = state.emergencyRequests.findIndex(req => req.id === id);
+                if (requestIndex !== -1) {
+                    state.emergencyRequests.splice(requestIndex, 1);
+                    saveToStorage();
+                    showEmergencyRequests();
+                    showAlert('Richiesta eliminata.');
+                }
+            });
+        }
+
+        function showEmergencyRequests() {
+            const mainContainer = document.getElementById('main-container');
+            const emergencyRequestsHTML = state.emergencyRequests.map(req => {
+                const passengerAssignments = state.drivers.find(d => d.id === req.originalDriverId)?.assignedPassengers.filter(a => a.date === req.date);
+                const assignedPassengerNames = passengerAssignments?.map(a => state.passengers.find(p => p.id === a.id)?.name).join(', ') || 'Nessun passeggero assegnato';
+
+                return `
+                    <div class="bg-white p-4 rounded-lg shadow-lg mb-4 border border-orange-400">
+                        <h4 class="font-semibold text-orange-600 mb-2">Richiesta per ${req.originalDriverName}</h4>
+                        <p class="text-sm text-gray-600"><strong>Data:</strong> ${formatDate(req.date)}</p>
+                        <p class="text-sm text-gray-600"><strong>Motivo:</strong> ${req.reason}</p>
+                        <p class="text-sm text-gray-600"><strong>Passeggeri da riassegnare:</strong> ${assignedPassengerNames}</p>
+                        ${req.notes ? `<p class="text-sm text-gray-600 mt-2"><strong>Note:</strong> ${req.notes}</p>` : ''}
+                        <div class="mt-4 flex gap-2">
+                            <button onclick="resolveEmergency('${req.id}')" class="py-1 px-3 bg-green-600 text-white rounded text-sm">Risolvi</button>
+                            <button onclick="deleteEmergency('${req.id}')" class="py-1 px-3 bg-red-600 text-white rounded text-sm">Elimina</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            mainContainer.innerHTML = `
+                <div class="container">
+                    <div class="flex justify-between items-center mb-8 flex-mobile-col gap-4">
+                        <h1 class="text-3xl font-bold">Gestione Emergenze</h1>
+                        <button onclick="changeView('admin')" class="py-2 px-4 bg-gray-600 text-white rounded-lg">Torna al pannello</button>
+                    </div>
+                    ${emergencyRequestsHTML.length > 0 ? emergencyRequestsHTML : `<div class="bg-white p-6 rounded-lg shadow-lg text-center"><p class="text-gray-500">Nessuna richiesta di emergenza in sospeso.</p></div>`}
+                </div>
+            `;
+        }
+        
+        function clearAllAssignments() {
+            showConfirmDialog('Annulla Assegnazioni', 'Sei sicuro di voler annullare tutte le assegnazioni? Questa azione non può essere annullata.', () => {
+                state.drivers.forEach(driver => {
+                    driver.assignedPassengers = [];
+                });
+                state.calendarSelectedDates = [];
+                saveToStorage();
+                render();
+                showAlert('Tutte le assegnazioni sono state annullate.');
+            });
+        }
+        
+        function syncAssignmentsWithCalendar() {
+            // Rimuove assegnazioni che non hanno più una data selezionata nel calendario
+            state.drivers.forEach(driver => {
+                driver.assignedPassengers = driver.assignedPassengers.filter(assignment => {
+                    return state.calendarSelectedDates.includes(assignment.date);
+                });
+            });
+            saveToStorage();
+            updateAssignmentsList();
+            showAlert('Assegnazioni sincronizzate con il calendario.');
+        }
+
+        function updateAssignmentsList() {
+            const assignmentsContent = document.getElementById('assignmentsContent');
+            if (!assignmentsContent) return;
+            
+            let listHTML = '';
+            const allAssignments = [];
+
+            state.drivers.forEach(driver => {
+                if (driver.assignedPassengers) {
+                    driver.assignedPassengers.forEach(assignment => {
+                        allAssignments.push({
+                            driverId: driver.id,
+                            driverName: driver.name,
+                            passengerId: assignment.id,
+                            date: assignment.date
+                        });
+                    });
+                }
+            });
+
+            if (allAssignments.length === 0) {
+                listHTML = '<p class="text-gray-500 text-center py-4">Nessuna assegnazione trovata.</p>';
+            } else {
+                listHTML = `
+                    <div class="overflow-x-auto">
+                        <table class="table w-full">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Autista</th>
+                                    <th>Passeggero</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${allAssignments.map(a => {
+                                    const passenger = state.passengers.find(p => p.id === a.passengerId);
+                                    if (!passenger) return '';
+                                    return `
+                                        <tr>
+                                            <td>${formatDate(a.date)}</td>
+                                            <td>${a.driverName}</td>
+                                            <td>${passenger.name}</td>
+                                            <td>
+                                                <button onclick="editAssignment('${a.driverId}', '${a.passengerId}', '${a.date}')" class="py-1 px-3 bg-blue-600 text-white rounded text-sm">Modifica</button>
+                                                <button onclick="deleteAssignment('${a.driverId}', '${a.passengerId}', '${a.date}')" class="py-1 px-3 bg-red-600 text-white rounded text-sm">Elimina</button>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+            assignmentsContent.innerHTML = listHTML;
+        }
+
+        function showAssignmentsList() {
+            state.showAssignmentsList = !state.showAssignmentsList;
+            render();
+        }
+
+        function editAssignment(driverId, passengerId, date) {
+            state.editAssignment = {
+                driverId: driverId,
+                passengerId: passengerId,
+                originalDate: date,
+                date: date,
+                passengerName: state.passengers.find(p => p.id === passengerId)?.name
+            };
+            showForm('edit-assignment');
+        }
+
+        function deleteAssignment(driverId, passengerId, date) {
+            showConfirmDialog('Elimina Assegnazione', 'Sei sicuro di voler eliminare questa singola assegnazione?', () => {
+                const driver = state.drivers.find(d => d.id === driverId);
+                if (driver) {
+                    driver.assignedPassengers = driver.assignedPassengers.filter(a => !(a.id === passengerId && a.date === date));
+                    saveToStorage();
+                    updateAssignmentsList();
+                    showAlert('Assegnazione eliminata con successo!');
+                }
+            });
+        }
+        
+        function saveAssignmentEdit() {
+            const originalDriverId = state.editAssignment.driverId;
+            const originalDate = state.editAssignment.originalDate;
+            const passengerId = state.editAssignment.passengerId;
+
+            const newDriverId = document.getElementById('newDriverId').value;
+            const newDate = document.getElementById('newDate').value;
+
+            if (!newDriverId || !newDate) {
+                return showAlert('Errore: seleziona un autista e una data validi.', 'error');
+            }
+
+            const originalDriver = state.drivers.find(d => d.id === originalDriverId);
+            const newDriver = state.drivers.find(d => d.id === newDriverId);
+
+            if (!originalDriver || !newDriver) {
+                return showAlert('Errore: autista non trovato', 'error');
+            }
+
+            // Rimuove l'assegnazione originale
+            const originalAssignmentIndex = originalDriver.assignedPassengers.findIndex(
+                a => a.id === passengerId && a.date === originalDate
+            );
+            
+            if (originalAssignmentIndex !== -1) {
+                originalDriver.assignedPassengers.splice(originalAssignmentIndex, 1);
+            }
+            
+            // Aggiunge la nuova assegnazione solo se è cambiata
+            const isModified = originalDriverId !== newDriverId || originalDate !== newDate;
+            if (isModified) {
+                if (!newDriver.assignedPassengers) {
+                    newDriver.assignedPassengers = [];
+                }
+                newDriver.assignedPassengers.push({
+                    id: passengerId,
+                    date: newDate
+                });
+            }
+
+            saveToStorage();
+            hideForm();
+            
+            if (state.showAssignmentsList) {
+                updateAssignmentsList();
+            }
+            
+            showAlert('Assegnazione modificata con successo!');
+        }
+
+        // =========================================================
+        // SECTION 4: View Rendering Functions
+        // =========================================================
+
+        function renderLoginView() {
+            hideForm();
+            document.getElementById('main-container').innerHTML = `
+                <div class="min-h-screen flex items-center justify-center p-4">
+                    <div class="bg-white p-6 rounded-xl shadow-xl max-w-sm w-full border-2">
+                        <h1 class="text-3xl font-bold text-center mb-6">Gestione Passaggi Adunanze</h1>
+                        <p class="text-gray-600 text-center mb-6">Seleziona il tuo ruolo per continuare.</p>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <input type="password" id="adminPassword" placeholder="Password amministratore" class="w-full">
+                                <button onclick="adminLogin()" class="w-full py-3 bg-blue-600 text-white rounded-lg mt-2 font-semibold hover:bg-blue-700">
+                                    Accesso Amministratore
+                                </button>
+                            </div>
+                            
+                            <button onclick="changeView('driver')" class="w-full py-3 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700">
+                                Accesso Autista
+                            </button>
+                        </div>
+                        
+                        <p class="text-sm text-gray-500 text-center mt-4">Password di default: <strong>admin123</strong></p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function adminLogin() {
+            const password = document.getElementById('adminPassword').value;
+            const passwordHash = simpleHash(password);
+            
+            if (passwordHash === state.adminPasswordHash) {
+                changeView('admin');
+                showAlert('Accesso amministratore effettuato con successo!');
+            } else {
+                showAlert('Password amministratore errata!', 'error');
+            }
+        }
+
+        function renderAdminView() {
+            hideForm();
+            const driverRows = state.drivers.map(driver => `
+                <tr>
+                    <td class="p-4 font-medium">${driver.name}</td>
+                    <td class="p-4 hidden-mobile">${driver.phone}</td>
+                    <td class="p-4 hidden-mobile">${driver.towns?.join(', ') || ''}</td>
+                    <td class="p-4 hidden-mobile">${driver.availableDays?.join(', ') || ''}</td>
+                    <td class="p-4">
+                        <span class="badge ${driver.paused ? 'badge-yellow' : 'badge-green'}">
+                            ${driver.paused ? 'In Pausa' : 'Attivo'}
+                        </span>
+                    </td>
+                    <td class="p-4">
+                        <div class="flex flex-col gap-2">
+                            <button onclick="editDriver('${driver.id}')" class="py-1 px-3 bg-blue-600 text-white rounded text-sm">Modifica</button>
+                            <button onclick="togglePauseDriver('${driver.id}')" class="py-1 px-3 bg-yellow-500 text-white rounded text-sm">${driver.paused ? 'Attiva' : 'Pausa'}</button>
+                            <button onclick="deleteDriver('${driver.id}')" class="py-1 px-3 bg-red-600 text-white rounded text-sm">Elimina</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            const passengerRows = state.passengers.map(passenger => `
+                <tr>
+                    <td class="p-4 font-medium">${passenger.name}</td>
+                    <td class="p-4 hidden-mobile">${passenger.phone}</td>
+                    <td class="p-4 hidden-mobile">${passenger.address}</td>
+                    <td class="p-4 hidden-mobile">${passenger.town}</td>
+                    <td class="p-4 hidden-mobile">${(passenger.availableDays || []).join(', ')}</td>
+                    <td class="p-4">
+                        <span class="badge ${passenger.paused ? 'badge-yellow' : 'badge-green'}">
+                            ${passenger.paused ? 'In Pausa' : 'Attivo'}
+                        </span>
+                    </td>
+                    <td class="p-4">
+                        <div class="flex flex-col gap-2">
+                            <button onclick="editPassenger('${passenger.id}')" class="py-1 px-3 bg-blue-600 text-white rounded text-sm">Modifica</button>
+                            <button onclick="togglePausePassenger('${passenger.id}')" class="py-1 px-3 bg-yellow-500 text-white rounded text-sm">${passenger.paused ? 'Attiva' : 'Pausa'}</button>
+                            <button onclick="deletePassenger('${passenger.id}')" class="py-1 px-3 bg-red-600 text-white rounded text-sm">Elimina</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            const totalAssignments = state.drivers.reduce((total, driver) => 
+                total + (driver.assignedPassengers?.length || 0), 0
+            );
+
+            const pendingEmergencies = state.emergencyRequests.filter(req => req.status === 'pending').length;
+            const emergencySection = pendingEmergencies > 0 ? `
+                <div class="emergency-section">
+                    <h2 class="text-xl font-bold mb-4 text-orange-600">🚨 Gestione Emergenze</h2>
+                    <div class="emergency-alert">
+                        <strong>Attenzione!</strong> Ci sono ${pendingEmergencies} richieste di sostituzione in sospeso.
+                    </div>
+                    <div class="flex gap-4 mt-4">
+                        <button onclick="showEmergencyRequests()" class="py-2 px-4 bg-orange-600 text-white rounded-lg">
+                            Visualizza Richieste (${pendingEmergencies})
+                        </button>
+                        <button onclick="showForm('emergency')" class="py-2 px-4 bg-red-600 text-white rounded-lg">
+                            Nuova Emergenza
+                        </button>
+                    </div>
+                </div>
+            ` : `
+                <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                    <h2 class="text-xl font-bold mb-4">🚨 Gestione Emergenze</h2>
+                    <p class="text-gray-600 mb-4">Gestisci sostituzioni dell'ultimo minuto per emergenze.</p>
+                    <button onclick="showForm('emergency')" class="py-2 px-4 bg-orange-600 text-white rounded-lg">
+                        Segnala Emergenza
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('main-container').innerHTML = `
+                <div class="container">
+                    <div class="flex justify-between items-center mb-8 flex-mobile-col gap-4">
+                        <h1 class="text-3xl font-bold">Pannello Amministratore</h1>
+                        <div class="flex gap-2 flex-mobile-col">
+                            <button onclick="showForm('driver')" class="py-2 px-4 bg-green-600 text-white rounded-lg">Aggiungi Autista</button>
+                            <button onclick="showForm('passenger')" class="py-2 px-4 bg-green-600 text-white rounded-lg">Aggiungi Passeggero</button>
+                            <button onclick="generateAssignments()" class="py-2 px-4 bg-indigo-600 text-white rounded-lg">Genera Rotazione</button>
+                        </div>
+                    </div>
+                    ${emergencySection}
+                    <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                        <h2 class="text-xl font-bold mb-4">Gestione Dati</h2>
+                        <div class="grid grid-cols-3 gap-4">
+                            <button onclick="exportData()" class="py-2 px-4 bg-gray-600 text-white rounded-lg">Esporta JSON</button>
+                            <button onclick="exportToExcel()" class="py-2 px-4 bg-emerald-600 text-white rounded-lg">Esporta Excel</button>
+                            <button onclick="exportToPDF()" class="py-2 px-4 bg-rose-600 text-white rounded-lg">Esporta PDF</button>
+                            <button onclick="document.getElementById('importFile').click()" class="py-2 px-4 bg-gray-600 text-white rounded-lg">Importa Dati</button>
+                            <button onclick="changeView('calendar')" class="py-2 px-4 bg-sky-600 text-white rounded-lg">Calendario</button>
+                            <button onclick="printSchedule()" class="py-2 px-4 bg-purple-600 text-white rounded-lg">Stampa Orario</button>
+                        </div>
+                        <div class="mt-4">
+                            <button onclick="showForm('password')" class="w-full py-2 px-4 bg-orange-600 text-white rounded-lg">Cambia Password</button>
+                        </div>
+                        <input type="file" id="importFile" accept=".json" onchange="importData(event)" class="hidden">
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-lg mb-8 border-2 border-blue-200">
+                        <h2 class="text-xl font-bold mb-4 text-blue-700">🔄 Gestione Assegnazioni (${totalAssignments} totali)</h2>
+                        <div class="flex gap-4 mb-4 flex-mobile-col">
+                            <button onclick="clearAllAssignments()" class="py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                                🗑️ Annulla Tutte le Assegnazioni
+                            </button>
+                            <button onclick="syncAssignmentsWithCalendar()" class="py-2 px-4 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
+                                🔄 Sincronizza con Calendario
+                            </button>
+                            <button onclick="showAssignmentsList()" class="py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                📋 ${state.showAssignmentsList ? 'Nascondi' : 'Mostra'} Lista Dettagliata
+                            </button>
+                        </div>
+                        <div class="bg-orange-50 p-3 rounded-lg border border-orange-200 mb-4">
+                            <p class="text-sm text-orange-700">
+                                <strong>💡 Suggerimento:</strong> Se vedi date non selezionate nella stampa, usa "Sincronizza con Calendario" per rimuovere assegnazioni obsolete.
+                            </p>
+                        </div>
+                        <div id="assignmentsList" class="${state.showAssignmentsList ? '' : 'hidden'}">
+                            <div id="assignmentsContent">
+                                <p class="text-gray-500 text-center py-4">Caricamento lista assegnazioni...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+                        <div class="p-6">
+                            <h2 class="text-xl font-bold">Autisti (${state.drivers.length})</h2>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th class="hidden-mobile">Telefono</th>
+                                        <th class="hidden-mobile">Paesi</th>
+                                        <th class="hidden-mobile">Giorni</th>
+                                        <th>Stato</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${driverRows.length > 0 ? driverRows : '<tr><td colspan="6" class="text-center text-gray-500 p-4">Nessun autista aggiunto.</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+                        <div class="p-6">
+                            <h2 class="text-xl font-bold">Passeggeri (${state.passengers.length})</h2>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th class="hidden-mobile">Telefono</th>
+                                        <th class="hidden-mobile">Indirizzo</th>
+                                        <th class="hidden-mobile">Paese</th>
+                                        <th class="hidden-mobile">Giorni</th>
+                                        <th>Stato</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${passengerRows.length > 0 ? passengerRows : '<tr><td colspan="7" class="text-center text-gray-500 p-4">Nessun passeggero aggiunto.</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <button onclick="changeView('login')" class="w-full py-3 bg-red-600 text-white rounded-lg font-semibold"> Torna alla selezione ruolo </button>
+                </div>
+            `;
+            if (state.showAssignmentsList) { setTimeout(() => updateAssignmentsList(), 100); }
+        }
+
+        function renderDriverView() {
+            hideForm();
+            const driverSelectOptions = state.drivers.map(driver => `<option value="${driver.id}">${driver.name}</option>`).join('');
+            const currentDriver = state.selectedDriverForView;
+            let assignedPassengersHtml = '<p class="text-gray-500 p-4 text-center">Nessun passeggero assegnato per questo autista.</p>';
+            if (currentDriver && currentDriver.assignedPassengers && currentDriver.assignedPassengers.length > 0) {
+                assignedPassengersHtml = currentDriver.assignedPassengers.map(passenger => {
+                    const foundPassenger = state.passengers.find(p => p.id === passenger.id);
+                    if (!foundPassenger || !passenger.date) return '';
+                    const encodedAddress = encodeURIComponent(`${foundPassenger.address}, ${foundPassenger.town}`);
+                    const mapsLink = `http://google.com/maps?q=${encodedAddress}`;
+                    return `
+                        <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                            <div class="flex justify-between items-start flex-mobile-col gap-4">
+                                <div>
+                                    <h3 class="font-semibold text-lg">${foundPassenger.name}</h3>
+                                    <p class="text-sm text-gray-600">📍 ${foundPassenger.address}</p>
+                                    <p class="text-sm text-gray-600">🏘️ ${foundPassenger.town}</p>
+                                    <p class="text-sm text-gray-600">📅 Disponibile: ${(foundPassenger.availableDays || []).join(', ')}</p>
+                                    <p class="text-sm text-blue-600 font-bold mt-2">🗓️ Adunanza: ${formatDate(passenger.date)}</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <a href="tel:${foundPassenger.phone}" class="py-2 px-4 bg-blue-600 text-white rounded-lg text-sm">📞 Chiama</a>
+                                    <a href="${mapsLink}" target="_blank" class="py-2 px-4 bg-green-600 text-white rounded-lg text-sm">🗺️ Mappa</a>
+                                    ${foundPassenger.email ? `<a href="mailto:${foundPassenger.email}" class="py-2 px-4 bg-purple-600 text-white rounded-lg text-sm">✉️ Email</a>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            document.getElementById('main-container').innerHTML = `
+                <div class="container max-w-xl">
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h1 class="text-3xl font-bold text-center mb-6">👨‍🚗 Area Autista</h1>
+                        <div class="mb-6">
+                            <label class="block font-semibold mb-2">Seleziona il tuo profilo:</label>
+                            <select id="driverSelect" onchange="selectDriver(this.value)" class="w-full">
+                                <option value="">-- Seleziona il tuo nome --</option>
+                                ${driverSelectOptions}
+                            </select>
+                        </div>
+                        ${currentDriver ? `
+                            <div class="bg-gray-50 p-6 rounded-lg mb-6">
+                                <h2 class="text-xl font-bold mb-2">Benvenuto, ${currentDriver.name}! 👋</h2>
+                                <p class="text-sm text-gray-600">📞 <strong>Telefono:</strong> ${currentDriver.phone}</p>
+                                ${currentDriver.email ? `<p class="text-sm text-gray-600">✉️ <strong>Email:</strong> ${currentDriver.email}</p>` : ''}
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-lg">
+                                <h2 class="text-xl font-bold mb-4 text-blue-700">Assegnazioni Passeggeri</h2>
+                                <div id="assignedPassengersList" class="space-y-4">
+                                    ${assignedPassengersHtml}
+                                </div>
+                            </div>
+                        ` : `<div class="bg-white p-6 rounded-xl shadow-lg text-center"><p class="text-gray-500">Seleziona un autista per visualizzare le assegnazioni.</p></div>`}
+                    </div>
+                    <button onclick="changeView('login')" class="w-full py-3 bg-red-600 text-white rounded-lg font-semibold mt-8"> Torna alla selezione ruolo </button>
+                </div>
+            `;
+        }
+
+        function selectDriver(id) {
+            state.selectedDriverForView = state.drivers.find(d => d.id === id) || null;
+            render();
+        }
+
+        function renderCalendarView() {
+            hideForm();
+            const mainContainer = document.getElementById('main-container');
+            const date = state.calendarCurrentDate;
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const lastDay = new Date(year, month + 1, 0).getDate();
+
+            let daysHtml = '';
+            const dayOffset = (firstDayOfMonth === 0) ? 6 : firstDayOfMonth - 1;
+
+            for (let i = 0; i < dayOffset; i++) { daysHtml += `<div class="day empty-day"></div>`; }
+
+            for (let i = 1; i <= lastDay; i++) {
+                const dayDate = new Date(year, month, i);
+                const dateString = dayDate.toISOString().split('T')[0];
+                const isToday = dayDate.toDateString() === new Date().toDateString();
+                const isSelected = state.calendarSelectedDates.includes(dateString);
+                
+                let dayClasses = `day cursor-pointer`;
+                if (isSelected) dayClasses += ` selected-day`;
+                if (isToday) dayClasses += ` border-2 border-blue-600`;
+
+                daysHtml += `<div class="${dayClasses}" onclick="toggleDateSelection('${dateString}')">${i}</div>`;
+            }
+
+            mainContainer.innerHTML = `
+                <div class="container max-w-2xl">
+                    <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                        <h1 class="text-3xl font-bold text-center mb-6">🗓️ Calendario Adunanze</h1>
+                        <div class="flex justify-between items-center mb-4">
+                            <button onclick="changeMonth(-1)" class="py-2 px-4 bg-gray-600 text-white rounded-lg">Mese Precedente</button>
+                            <h2 class="text-2xl font-semibold">${monthNames[month]} ${year}</h2>
+                            <button onclick="changeMonth(1)" class="py-2 px-4 bg-gray-600 text-white rounded-lg">Mese Successivo</button>
+                        </div>
+                        <div class="grid grid-cols-7 text-center font-semibold text-sm text-gray-600 mb-2">
+                            <span>Lun</span><span>Mar</span><span>Mer</span><span>Gio</span><span>Ven</span><span>Sab</span><span>Dom</span>
+                        </div>
+                        <div class="grid grid-cols-7 gap-2">
+                            ${daysHtml}
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                        <h3 class="text-xl font-bold mb-4">Date Selezionate (${state.calendarSelectedDates.length})</h3>
+                        <p class="text-gray-600 mb-4">Seleziona le date nel calendario che coincidono con le adunanze.</p>
+                        <div id="selectedDatesList" class="flex flex-wrap gap-2">
+                            ${state.calendarSelectedDates.sort().map(dateStr => `<span class="badge badge-green">${formatDate(dateStr)}</span>`).join('') || '<p class="text-gray-500">Nessuna data selezionata.</p>'}
+                        </div>
+                    </div>
+                    <button onclick="changeView('admin')" class="w-full py-3 bg-red-600 text-white rounded-lg font-semibold mt-8">Torna al pannello</button>
+                </div>
+            `;
+        }
+
+        function toggleDateSelection(dateStr) {
+            const index = state.calendarSelectedDates.indexOf(dateStr);
+            if (index > -1) {
+                state.calendarSelectedDates.splice(index, 1);
+            } else {
+                state.calendarSelectedDates.push(dateStr);
+            }
+            saveToStorage();
+            renderCalendarView();
+        }
+
+        function changeMonth(direction) {
+            state.calendarCurrentDate.setMonth(state.calendarCurrentDate.getMonth() + direction);
+            renderCalendarView();
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(state, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            const exportFileDefaultName = 'gestione_passaggi_data.json';
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            showAlert('Dati esportati con successo!');
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) { return; }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (importedData.drivers && importedData.passengers) {
+                        state.drivers = importedData.drivers;
+                        state.passengers = importedData.passengers;
+                        state.emergencyRequests = importedData.emergencyRequests || [];
+                        state.calendarSelectedDates = importedData.selectedDates || [];
+                        if (importedData.adminPasswordHash) {
+                            state.adminPasswordHash = importedData.adminPasswordHash;
+                        }
+                        saveToStorage();
+                        render();
+                        showAlert('Dati importati con successo!');
+                    } else {
+                        showAlert('Il file non contiene dati validi.', 'error');
+                    }
+                } catch (err) {
+                    showAlert('Errore durante l\'importazione del file.', 'error');
+                    console.error('Import error:', err);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function exportToExcel() {
+            if (state.drivers.length === 0 && state.passengers.length === 0) {
+                return showAlert('Nessun dato da esportare in Excel.', 'error');
+            }
+            
+            const driversData = state.drivers.map(d => ({
+                Nome: d.name,
+                Telefono: d.phone,
+                Email: d.email,
+                Paesi: d.towns.join(', '),
+                Giorni: d.availableDays.join(', '),
+                Stato: d.paused ? 'In Pausa' : 'Attivo'
+            }));
+
+            const passengersData = state.passengers.map(p => ({
+                Nome: p.name,
+                Telefono: p.phone,
+                Email: p.email,
+                Indirizzo: p.address,
+                Paese: p.town,
+                Giorni: (p.availableDays || []).join(', '),
+                Stato: p.paused ? 'In Pausa' : 'Attivo'
+            }));
+
+            const assignmentsData = [];
+            state.drivers.forEach(driver => {
+                if (driver.assignedPassengers) {
+                    driver.assignedPassengers.forEach(assignment => {
+                        const passenger = state.passengers.find(p => p.id === assignment.id);
+                        if (passenger) {
+                            assignmentsData.push({
+                                Data: formatDate(assignment.date),
+                                Autista: driver.name,
+                                Passeggero: passenger.name,
+                                TelefonoPasseggero: passenger.phone,
+                                IndirizzoPasseggero: passenger.address
+                            });
+                        }
+                    });
+                }
+            });
+
+            const wb = XLSX.utils.book_new();
+            
+            if (driversData.length > 0) {
+                const wsDrivers = XLSX.utils.json_to_sheet(driversData);
+                XLSX.utils.book_append_sheet(wb, wsDrivers, "Autisti");
+            }
+
+            if (passengersData.length > 0) {
+                const wsPassengers = XLSX.utils.json_to_sheet(passengersData);
+                XLSX.utils.book_append_sheet(wb, wsPassengers, "Passeggeri");
+            }
+
+            if (assignmentsData.length > 0) {
+                const wsAssignments = XLSX.utils.json_to_sheet(assignmentsData);
+                XLSX.utils.book_append_sheet(wb, wsAssignments, "Assegnazioni");
+            }
+            
+            XLSX.writeFile(wb, "gestione_passaggi.xlsx");
+            showAlert('Dati esportati in Excel con successo!');
+        }
+
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const date = new Date().toLocaleDateString('it-IT');
+            let y = 20;
+
+            doc.setFontSize(18);
+            doc.text("Report Gestione Passaggi", 105, y, null, null, "center");
+            y += 10;
+            doc.setFontSize(10);
+            doc.text(`Generato il: ${date}`, 105, y, null, null, "center");
+            y += 20;
+            
+            const drivers = state.drivers.map(d => [d.name, d.phone, d.towns.join(', '), d.paused ? 'In Pausa' : 'Attivo']);
+            doc.setFontSize(14);
+            doc.text("Autisti", 15, y);
+            y += 10;
+            doc.autoTable({
+                startY: y,
+                head: [['Nome', 'Telefono', 'Paesi', 'Stato']],
+                body: drivers,
+                theme: 'striped',
+                headStyles: { fillColor: [52, 73, 94] },
+                margin: { left: 15, right: 15 }
+            });
+            y = doc.autoTable.previous.finalY + 20;
+
+            const passengers = state.passengers.map(p => [p.name, p.phone, p.address, p.town, p.paused ? 'In Pausa' : 'Attivo']);
+            doc.setFontSize(14);
+            doc.text("Passeggeri", 15, y);
+            y += 10;
+            doc.autoTable({
+                startY: y,
+                head: [['Nome', 'Telefono', 'Indirizzo', 'Paese', 'Stato']],
+                body: passengers,
+                theme: 'striped',
+                headStyles: { fillColor: [52, 73, 94] },
+                margin: { left: 15, right: 15 }
+            });
+            
+            doc.save("gestione_passaggi.pdf");
+            showAlert('Dati esportati in PDF con successo!');
+        }
+        
+        // NEW: Function to generate assignments
+        function generateAssignments() {
+            showConfirmDialog('Genera Rotazione', 'Questo processo creerà nuove assegnazioni. Le assegnazioni esistenti non saranno modificate. Vuoi procedere?', () => {
+                const availableDrivers = state.drivers.filter(d => !d.paused);
+                const availablePassengers = state.passengers.filter(p => !p.paused);
+                const dates = state.calendarSelectedDates.sort();
+
+                if (availableDrivers.length === 0 || availablePassengers.length === 0 || dates.length === 0) {
+                    return showAlert('Non è possibile generare la rotazione. Assicurati di avere almeno un autista, un passeggero e una data selezionata.', 'error');
+                }
+
+                // Reset assigned passengers
+                availableDrivers.forEach(d => d.assignedPassengers = []);
+
+                const driverMap = {};
+                availableDrivers.forEach(d => {
+                    d.towns.forEach(town => {
+                        if (!driverMap[town]) {
+                            driverMap[town] = [];
+                        }
+                        driverMap[town].push(d);
+                    });
+                });
+
+                const passengersToAssign = [...availablePassengers];
+                let driverIndex = 0;
+
+                dates.forEach(date => {
+                    const dayOfWeek = dayNames[new Date(date + 'T00:00:00').getDay()];
+
+                    passengersToAssign.sort((a, b) => {
+                        const aAssignedCount = availableDrivers.reduce((sum, d) => sum + (d.assignedPassengers?.filter(p => p.id === a.id).length || 0), 0);
+                        const bAssignedCount = availableDrivers.reduce((sum, d) => sum + (d.assignedPassengers?.filter(p => p.id === b.id).length || 0), 0);
+                        return aAssignedCount - bAssignedCount;
+                    });
+                    
+                    passengersToAssign.forEach(passenger => {
+                        // Check if passenger is available on this day
+                        if (passenger.availableDays.length > 0 && !passenger.availableDays.includes(dayOfWeek)) {
+                            return;
+                        }
+                        
+                        let assigned = false;
+                        const potentialDrivers = (driverMap[passenger.town] || []).filter(d => d.availableDays.includes(dayOfWeek));
+                        
+                        // Sort potential drivers by number of assignments to balance the load
+                        potentialDrivers.sort((a, b) => a.assignedPassengers.length - b.assignedPassengers.length);
+
+                        for (const driver of potentialDrivers) {
+                            if (!driver.assignedPassengers.find(a => a.date === date)) {
+                                driver.assignedPassengers.push({
+                                    id: passenger.id,
+                                    date: date
+                                });
+                                assigned = true;
+                                break;
+                            }
+                        }
+
+                        if (!assigned) {
+                            const fallbackDrivers = availableDrivers.filter(d => d.towns.includes("Altro") && d.availableDays.includes(dayOfWeek));
+                            fallbackDrivers.sort((a, b) => a.assignedPassengers.length - b.assignedPassengers.length);
+
+                            for (const driver of fallbackDrivers) {
+                                if (!driver.assignedPassengers.find(a => a.date === date)) {
+                                    driver.assignedPassengers.push({
+                                        id: passenger.id,
+                                        date: date
+                                    });
+                                    assigned = true;
+                                    break;
+                                }
+                            }
+                        }
+                    });
+                });
+                
+                saveToStorage();
+                render();
+                showAlert('Rotazione generata con successo!');
+            });
+        }
+        
+        // NEW: Function to print the schedule
+        function printSchedule() {
+            const printSection = document.getElementById('printSection');
+            const mainContainer = document.getElementById('main-container');
+
+            if (state.drivers.length === 0 || state.calendarSelectedDates.length === 0) {
+                return showAlert('Nessun orario da stampare. Aggiungi autisti e seleziona le date nel calendario.', 'error');
+            }
+
+            let printContent = `
+                <div class="print-header text-center mb-8">
+                    <h1 class="text-3xl font-bold">Orario Assegnazioni Adunanze</h1>
+                    <p class="text-gray-600">Generato il: ${new Date().toLocaleDateString('it-IT')}</p>
+                </div>
+                <div class="space-y-8">
+            `;
+
+            state.calendarSelectedDates.sort().forEach(dateStr => {
+                const dateAssignments = state.drivers.reduce((acc, driver) => {
+                    const assignments = driver.assignedPassengers.filter(p => p.date === dateStr);
+                    if (assignments.length > 0) {
+                        acc.push({
+                            driver: driver,
+                            passengers: assignments
+                        });
+                    }
+                    return acc;
+                }, []);
+
+                if (dateAssignments.length > 0) {
+                    printContent += `
+                        <div class="print-section">
+                            <h2 class="text-2xl font-bold text-blue-700 mb-4">${formatDate(dateStr)}</h2>
+                            <div class="grid grid-cols-2 gap-4">
+                                ${dateAssignments.map(item => `
+                                    <div class="driver-section border p-4 rounded-lg">
+                                        <h3 class="font-semibold text-lg mb-2">Autista: ${item.driver.name}</h3>
+                                        <div class="space-y-2">
+                                            ${item.passengers.map(assignment => {
+                                                const passenger = state.passengers.find(p => p.id === assignment.id);
+                                                if (!passenger) return '';
+                                                return `
+                                                    <div class="assignment-item text-sm bg-gray-50 p-3 rounded">
+                                                        <p><strong>Passeggero:</strong> ${passenger.name}</p>
+                                                        <p><strong>Indirizzo:</strong> ${passenger.address}, ${passenger.town}</p>
+                                                        <p><strong>Telefono:</strong> ${passenger.phone}</p>
+                                                    </div>
+                                                `;
+                                            }).join('')}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            printContent += `</div>`;
+
+            printSection.innerHTML = printContent;
+            
+            // Nasconde il contenuto principale e mostra la sezione di stampa
+            mainContainer.classList.add('hide-when-printing');
+            printSection.classList.remove('hidden');
+
+            window.print();
+            
+            // Riporta la visualizzazione allo stato iniziale dopo la stampa
+            mainContainer.classList.remove('hide-when-printing');
+            printSection.classList.add('hidden');
+            printSection.innerHTML = '';
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFromStorage();
+            render();
+        });
+    </script>
+</body>
+</html>
